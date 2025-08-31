@@ -7,6 +7,7 @@ import { register, logIn } from "../redux/auth/operations";
 import Button from "./Button";
 import { useState } from "react";
 import { selectIsLoading } from "../redux/auth/selectors";
+import { Eye, EyeOff } from "lucide-react";
 
 const SignupSchema = Yup.object().shape({
   name: Yup.string()
@@ -32,6 +33,7 @@ const initialValues = { name: "", email: "", password: "" };
 const SignInSignUp = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const isLoading = useSelector(selectIsLoading);
+  const [showPassword, setShowPassword] = useState(false);
 
   const dispatch = useDispatch();
 
@@ -121,14 +123,23 @@ const SignInSignUp = () => {
               <label htmlFor={passwordFieldId} className="text-blue-200 px-2 ">
                 Password
               </label>
-              <Field
-                type="password"
-                name="password"
-                autoComplete={isSignUp ? "new-password" : "current-password"}
-                id={passwordFieldId}
-                className="w-full p-4 bg-blue-900/30 rounded-xl border border-blue-700/50 text-white outline-none focus:ring-2 focus:ring-sky-400/50 focus:border-transparent transition-all "
-                placeholder="••••••••"
-              />
+              <div className="relative">
+                <Field
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  autoComplete={isSignUp ? "new-password" : "current-password"}
+                  id={passwordFieldId}
+                  className="w-full p-4 bg-blue-900/30 rounded-xl border border-blue-700/50 text-white outline-none focus:ring-2 focus:ring-sky-400/50 focus:border-transparent transition-all"
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-3 flex items-center text-blue-300 hover:text-sky-400 transition-colors"
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
               <ErrorMessage
                 name="password"
                 component="p"
