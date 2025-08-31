@@ -2,11 +2,13 @@ import { Field, Formik, Form, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import { useId } from "react";
 import { toast } from "react-hot-toast";
-import { useDispatch } from "react-redux";
-import { register } from "../redux/auth/operations";
+import { useDispatch, useSelector } from "react-redux";
+import { register, logIn } from "../redux/auth/operations";
 import Button from "./Button";
+import { useState } from "react";
+import { selectIsLoading } from "../redux/auth/selectors";
 
-const LoginSchema = Yup.object().shape({
+const SignupSchema = Yup.object().shape({
   name: Yup.string()
     .min(2, "Too short!")
     .required("Required")
@@ -20,9 +22,17 @@ const LoginSchema = Yup.object().shape({
     .required("Required"),
 });
 
+const LoginSchema = Yup.object().shape({
+  email: Yup.string().email("Invalid email format").required("Required"),
+  password: Yup.string().required("Required"),
+});
+
 const initialValues = { name: "", email: "", password: "" };
 
 const SignInSignUp = () => {
+  const [isSignUp, setIsSignUp] = useState(false);
+  const isLoading = useSelector(selectIsLoading);
+
   const dispatch = useDispatch();
 
   const emailFieldId = useId();
@@ -30,55 +40,75 @@ const SignInSignUp = () => {
   const nameFieldId = useId();
 
   const handleSubmit = async (values, actions) => {
-    try {
-      await dispatch(register(values)).unwrap();
-
-      toast.success("Registration successful! You can now log in.");
-      actions.resetForm();
-    } catch (error) {
-      toast.error(`Registration failed: ${error}`);
+    if (isSignUp) {
+      try {
+        await dispatch(register(values)).unwrap();
+        toast.success("Registration successful! Please sign in.");
+        actions.resetForm();
+        setIsSignUp(false);
+      } catch (error) {
+        toast.error(`Registration failed: ${error}`);
+      }
+    } else {
+      try {
+        const { name: _name, ...loginCredentials } = values;
+        await dispatch(logIn(loginCredentials)).unwrap();
+        toast.success("Login succesful! Welcome back.");
+        actions.resetForm();
+      } catch (error) {
+        toast.error(`Login failed: ${error}`);
+      }
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-linear-135 from-blue-950 via-blue-900 to-blue-800 p-8">
-      <div className="@container max-w-md w-full p-8 bg-blue-950/30 rounded-2xl shadow-[0_20px_50px_rgba(0,_29,_61,_0.7)] backdrop-blur-xl border border-blue-800/50 relative">
+      <div className="@container max-w-md w-full p-8 bg-blue-950/30 rounded-2xl shadow-[0_20px_50px_rgba(0,_29,_61,_0.7)] backdrop-blur-xl border border-blue-800/50 relative animate-fade-in">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-transparent rounded-2xl"></div>
         <div className="relative">
           <h2 className="text-3xl font-extrabold text-sky-300 text-center mb-2 tracking-tight">
-            Create an Account
+            {isSignUp ? "Create an Account" : "Welcome Back"}
           </h2>
           <p className="text-blue-200 text-center mb-8">
-            Join our community today
+            {isSignUp
+              ? "Join our community today"
+              : "Sign in to continue your journey"}
           </p>
           <Formik
             initialValues={initialValues}
             onSubmit={handleSubmit}
-            validationSchema={LoginSchema}
+            validationSchema={isSignUp ? SignupSchema : LoginSchema}
             className="mt-8 space-y-5 perspective-1000"
           >
             <Form className="group flex flex-col gap-2" autoComplete="off">
-              <label htmlFor="nameFieldId" className="text-blue-200 px-2 ">
-                Name
-              </label>
-              <Field
-                type="text"
-                name="name"
-                id={nameFieldId}
-                className="w-full p-4 bg-blue-900/30 rounded-xl border border-blue-700/50 text-white outline-none focus:ring-2 focus:ring-sky-400/50 focus:border-transparent transition-all "
-                placeholder="John Doe"
-              />
-              <ErrorMessage
-                name="name"
-                component="p"
-                className="text-red-400 text-sm mt-2"
-              />
-              <label htmlFor="emailFieldId" className="text-blue-200 px-2 ">
+              {isSignUp && (
+                <>
+                  <label htmlFor={nameFieldId} className="text-blue-200 px-2 ">
+                    Name
+                  </label>
+                  <Field
+                    type="text"
+                    name="name"
+                    id={nameFieldId}
+                    className="w-full p-4 bg-blue-900/30 rounded-xl border border-blue-700/50 text-white outline-none focus:ring-2 focus:ring-sky-400/50 focus:border-transparent transition-all "
+                    placeholder="John Doe"
+                    autoComplete="name"
+                  />
+                  <ErrorMessage
+                    name="name"
+                    component="p"
+                    className="text-red-400 text-sm mt-2"
+                  />
+                </>
+              )}
+
+              <label htmlFor={emailFieldId} className="text-blue-200 px-2 ">
                 Email
               </label>
               <Field
                 type="email"
                 name="email"
+                autoComplete="email"
                 id={emailFieldId}
                 className="w-full p-4 bg-blue-900/30 rounded-xl border border-blue-700/50 text-white outline-none focus:ring-2 focus:ring-sky-400/50 focus:border-transparent transition-all "
                 placeholder="you@example.com"
@@ -88,12 +118,13 @@ const SignInSignUp = () => {
                 component="p"
                 className="text-red-400 text-sm mt-2"
               />
-              <label htmlFor="passwordFieldId" className="text-blue-200 px-2 ">
+              <label htmlFor={passwordFieldId} className="text-blue-200 px-2 ">
                 Password
               </label>
               <Field
                 type="password"
                 name="password"
+                autoComplete={isSignUp ? "new-password" : "current-password"}
                 id={passwordFieldId}
                 className="w-full p-4 bg-blue-900/30 rounded-xl border border-blue-700/50 text-white outline-none focus:ring-2 focus:ring-sky-400/50 focus:border-transparent transition-all "
                 placeholder="••••••••"
@@ -103,16 +134,27 @@ const SignInSignUp = () => {
                 component="p"
                 className="text-red-400 text-sm mt-2"
               />
-              <Button type="submit">
+              <Button type="submit" disabled={isLoading}>
                 <span className="relative z-10 pointer-events-none">
-                  Create Account
+                  {isLoading
+                    ? isSignUp
+                      ? "Creating Account..."
+                      : "Signing In..."
+                    : isSignUp
+                    ? "Create Account"
+                    : "Sign In"}
                 </span>
                 <span className="absolute inset-0 bg-gradient-to-r from-sky-500 to-sky-300 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none "></span>
               </Button>
               <p className="mt-8 text-blue-200/80 text-center">
-                Already have an account?
-                <span className="text-sky-300 font-bold cursor-pointer hover:text-sky-400 ml-1 transition-colors">
-                  Sign in
+                {isSignUp
+                  ? "Already have an account?"
+                  : "Don't have an account?"}
+                <span
+                  className="text-sky-300 font-bold cursor-pointer hover:text-sky-400 ml-1 transition-colors"
+                  onClick={() => setIsSignUp(!isSignUp)}
+                >
+                  {isSignUp ? "Sign in" : "Sign Up"}
                 </span>
               </p>
             </Form>
