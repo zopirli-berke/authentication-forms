@@ -9,7 +9,7 @@ export const register = createAsyncThunk(
   `auth/register`,
   async (credentials, thunkAPI) => {
     try {
-      const res = await axios.post(`/users/signup`, credentials);
+      const res = await axios.post(`/users`, credentials);
       setAuthHeader(res.data.token);
       return res.data;
     } catch (error) {
@@ -19,14 +19,24 @@ export const register = createAsyncThunk(
 );
 
 export const logIn = createAsyncThunk(
-  `auth/login`,
-  async (credentials, thunkAPI) => {
+  "auth/login",
+  async (credentials, { rejectWithValue }) => {
     try {
-      const res = await axios.post(`/users/login`, credentials);
-      setAuthHeader(res.data.token);
-      return res.data;
+      const res = await axios.get(`/users?email=${credentials.email}`);
+      const user = res.data[0];
+
+      if (
+        !user ||
+        user.password !== credentials.password ||
+        user.email !== credentials.email
+      ) {
+        return rejectWithValue("Incorrect email or password.");
+      }
+
+      setAuthHeader(user.id);
+      return { user, token: user.id };
     } catch (error) {
-      return thunkAPI.rejectWithValue(error.message);
+      return rejectWithValue(error.message);
     }
   }
 );
