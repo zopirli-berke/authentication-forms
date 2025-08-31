@@ -6,14 +6,22 @@ const setAuthHeader = (token) => {
 };
 
 export const register = createAsyncThunk(
-  `auth/register`,
-  async (credentials, thunkAPI) => {
+  "auth/register",
+  async (credentials, { rejectWithValue }) => {
     try {
+      const checkResponse = await axios.get(
+        `/users?email=${credentials.email}`
+      );
+
+      if (checkResponse.data.length > 0) {
+        return rejectWithValue("This email is already in use.");
+      }
+
       const res = await axios.post(`/users`, credentials);
-      setAuthHeader(res.data.token);
+
       return res.data;
     } catch (error) {
-      return thunkAPI.rejectWithValue(error.message);
+      return rejectWithValue(error.message);
     }
   }
 );
